@@ -1,4 +1,5 @@
 ﻿using System;
+using MyIS.HTTP;
 
 namespace DemoApp
 {
@@ -6,7 +7,8 @@ namespace DemoApp
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var httpServer = new HttpServer(80);
+            httpServer.StartAsync().GetAwaiter().GetResult();
         }
     }
 }

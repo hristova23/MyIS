@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace MyIS.HTTP
 {
-    public class Class1
+    public class HttpServerExeption : Exception
     {
+        public HttpServerExeption(string message)
+            : base(message)
+        {
+        }
     }
 }
