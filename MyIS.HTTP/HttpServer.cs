@@ -34,45 +34,62 @@ namespace MyIS.HTTP
         {
             using (NetworkStream networkStream = tcpClient.GetStream())
             {
-                //Process request
-                byte[] requestBytes = new byte[1000000];//TODO: use buffer
-                int bytesRead = await networkStream.ReadAsync(requestBytes, 0, requestBytes.Length);
-                string requestAsString = Encoding.UTF8.GetString(requestBytes, 0, bytesRead);
-
-                var request = new HttpRequest(requestAsString);
-
-                //Create response text
-                string content = "<h1>Home Page</h1>";
-
-                if (request.Path == "/Login")
+                try
                 {
-                    content = @"<form action='Account/Login' method='post'> 
+                    //Process request
+                    byte[] requestBytes = new byte[1000000];//TODO: use buffer
+                    int bytesRead = await networkStream.ReadAsync(requestBytes, 0, requestBytes.Length);
+                    string requestAsString = Encoding.UTF8.GetString(requestBytes, 0, bytesRead);
+
+                    var request = new HttpRequest(requestAsString);
+
+                    //Create response text
+                    string content = "<h1>Home Page</h1>";
+
+                    if (request.Path == "/Login")
+                    {
+                        content = @"<form action='Account/Login' method='post'> 
 <input type=date name='date' />
 <input type=text name='username' />
 <input type=password name='password' /> 
 <input type=submit value='Login' /> 
 </form>";
+                    }
+                    else if (request.Path == "/About")
+                    {
+                        content = "<h1>About Page</h1>";
+                    }
+
+                    byte[] contentAsBytes = Encoding.UTF8.GetBytes(content);
+                    var response = new HttpResponse(HttpResponseCode.Ok, contentAsBytes);
+                    response.Headers.Add(new Header("Server", "MyServer/1.0"));
+                    response.Headers.Add(new Header("Content-Type", "text/html"));
+                    response.Cookies.Add(
+                        new ResponseCookie
+                        ($"SessionId", Guid.NewGuid().ToString())
+                        { HttpOnly = true, MaxAge = 3600 });
+
+                    byte[] responseBytes = Encoding.UTF8.GetBytes(response.ToString());
+                    await networkStream.WriteAsync(responseBytes, 0, responseBytes.Length);
+                    await networkStream.WriteAsync(response.Body, 0, response.Body.Length);
+
+                    //Print
+                    Console.WriteLine("Request: " + new string('=', 71));
+                    Console.WriteLine(request);
+                    Console.WriteLine("Response: " + new string('=', 70));
+                    Console.WriteLine(response.ToString());
+                    Console.WriteLine(new string('*', 80));
                 }
-                else if(request.Path == "/About")
+                catch (Exception ex)
                 {
-                    content = "<h1>About Page</h1>";
+                    var errorResponse = new HttpResponse(
+                    HttpResponseCode.InternalServerError,
+                    Encoding.UTF8.GetBytes(ex.ToString()));
+                    errorResponse.Headers.Add(new Header("Content-Type", "text/plain"));
+                    byte[] responseBytes = Encoding.UTF8.GetBytes(errorResponse.ToString());
+                    await networkStream.WriteAsync(responseBytes, 0, responseBytes.Length);
+                    await networkStream.WriteAsync(errorResponse.Body, 0, errorResponse.Body.Length);
                 }
-
-                byte[] contentAsBytes = Encoding.UTF8.GetBytes(content);
-                var response = new HttpResponse(HttpResponseCode.Ok, contentAsBytes);
-                response.Headers.Add(new Header("Server", "MyServer/1.0"));
-                response.Headers.Add(new Header("Content-Type", "text/html"));
-
-                byte[] responseBytes = Encoding.UTF8.GetBytes(response.ToString());
-                await networkStream.WriteAsync(responseBytes, 0, responseBytes.Length);
-                await networkStream.WriteAsync(response.Body, 0, response.Body.Length);
-
-                //Print
-                Console.WriteLine("Request: " + new string('=', 71));
-                Console.WriteLine(request);
-                Console.WriteLine("Response: " + new string('=', 70));
-                Console.WriteLine(response.ToString());
-                Console.WriteLine(new string('*', 80));
             }
         }
 
